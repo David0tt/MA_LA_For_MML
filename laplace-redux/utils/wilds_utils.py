@@ -8,14 +8,19 @@ from pathlib import Path
 import urllib.request
 
 try:
-    from configs.utils import populate_defaults
-    from examples.models.initializer import initialize_model
-    from examples.transforms import initialize_transform
+    from wilds_examples.configs.utils import populate_defaults
+    from wilds_examples.models.initializer import initialize_model
+    from wilds_examples.transforms import initialize_transform
+except ModuleNotFoundError as e:
+    print("Files from Wilds examples not found. Download the examples folder from https://github.com/p-lambda/wilds in version 1.1.0 and copy them into /laplace-redux/wilds_examples. Then adapt all local imports by prepending `wilds_examples.` where necessary")
+    print("ModuleNotFoundError: ", e)
+try:
     from wilds import get_dataset
     from wilds.common.data_loaders import get_train_loader, get_eval_loader
     from wilds.common.grouper import CombinatorialGrouper
-except ModuleNotFoundError:
+except ModuleNotFoundError as e:
     print('WILDS library/dependencies not found -- please install following https://github.com/p-lambda/wilds.')
+    print("ModuleNotFoundError: ", e)
 
 
 D_OUTS = {"camelyon17": 2, "amazon": 5, "civilcomments": 2, "poverty": 1, "fmow": 62}
@@ -270,12 +275,13 @@ def load_pretrained_wilds_model(dataset, model_dir, device, model_idx=0, model_s
     return model
 
 
-def get_wilds_loaders(dataset, data_dir, data_fraction=1.0, model_seed=0):
+def get_wilds_loaders(dataset, data_dir, data_fraction=1.0, model_seed=0, download=False, use_ood_val_set=False):
     """ load in-distribution datasets and return data loaders """
 
     # load default config and the full dataset
     config = get_default_config(dataset, data_fraction=data_fraction)
     dataset_kwargs = {'fold': POVERTY_FOLDS[model_seed]} if dataset == "poverty" else {}
+    dataset_kwargs['download'] = download
     full_dataset = get_dataset(dataset=dataset, root_dir=data_dir, **dataset_kwargs)
     train_grouper = CombinatorialGrouper(dataset=full_dataset, groupby_fields=config.groupby_fields)
 
@@ -290,23 +296,40 @@ def get_wilds_loaders(dataset, data_dir, data_fraction=1.0, model_seed=0):
                                     distinct_groups=config.distinct_groups, n_groups_per_batch=config.n_groups_per_batch,
                                     **config.loader_kwargs)
 
-    # get the in-distribution validation data loader
     eval_transform = initialize_transform(transform_name=config.eval_transform, config=config, dataset=full_dataset)
-    try:
-        val_str = "val" if dataset == "fmow" else "id_val"
+    if use_ood_val_set:
+        # get the OOD validation data loader
+        print('Using the OOD validation set instead of the ID validation set')
+        val_str = "val"
         val_data = full_dataset.get_subset(val_str, frac=config.frac, transform=eval_transform)
         val_loader = get_eval_loader(loader=config.eval_loader, dataset=val_data, batch_size=config.batch_size, grouper=train_grouper, **config.loader_kwargs)
-    except:
-        print(f"{dataset} dataset doesn't have an in-distribution validation split -- using train split instead!")
-        val_loader = train_loader
+    
+        # get the in-distribution test data loader (this is the id val loader, if not id test loader exists)
+        try:
+            in_test_data = full_dataset.get_subset('id_test', frac=config.frac, transform=eval_transform)
+            in_test_loader = get_eval_loader(loader=config.eval_loader, dataset=in_test_data, batch_size=config.batch_size, grouper=train_grouper, **config.loader_kwargs)
+        except:
+            print(f"{dataset} dataset doesn't have an in-distribution test split -- using validation split instead!")
+            in_test_data = full_dataset.get_subset('id_val', frac=config.frac, transform=eval_transform)
+            in_test_loader = get_eval_loader(loader=config.eval_loader, dataset=in_test_data, batch_size=config.batch_size, grouper=train_grouper, **config.loader_kwargs)
 
-    # get the in-distribution test data loader
-    try:
-        in_test_data = full_dataset.get_subset('id_test', frac=config.frac, transform=eval_transform)
-        in_test_loader = get_eval_loader(loader=config.eval_loader, dataset=in_test_data, batch_size=config.batch_size, grouper=train_grouper, **config.loader_kwargs)
-    except:
-        print(f"{dataset} dataset doesn't have an in-distribution test split -- using validation split instead!")
-        in_test_loader = val_loader
+    else:
+        # get the in-distribution validation data loader
+        try:
+            val_str = "val" if dataset == "fmow" else "id_val"
+            val_data = full_dataset.get_subset(val_str, frac=config.frac, transform=eval_transform)
+            val_loader = get_eval_loader(loader=config.eval_loader, dataset=val_data, batch_size=config.batch_size, grouper=train_grouper, **config.loader_kwargs)
+        except:
+            print(f"{dataset} dataset doesn't have an in-distribution validation split -- using train split instead!")
+            val_loader = train_loader
+
+        # get the in-distribution test data loader
+        try:
+            in_test_data = full_dataset.get_subset('id_test', frac=config.frac, transform=eval_transform)
+            in_test_loader = get_eval_loader(loader=config.eval_loader, dataset=in_test_data, batch_size=config.batch_size, grouper=train_grouper, **config.loader_kwargs)
+        except:
+            print(f"{dataset} dataset doesn't have an in-distribution test split -- using validation split instead!")
+            in_test_loader = val_loader
 
     # wrap data loaders for compatibility with uq.py and laplace library
     train_loader = ProperDataLoader(train_loader)
