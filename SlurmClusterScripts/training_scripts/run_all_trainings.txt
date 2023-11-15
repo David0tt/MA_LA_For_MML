@@ -1,0 +1,18 @@
+# Grid Search for some parameters on SkinLesions
+sbatch train_HAM10000_ARGUMENT_PASS_THROUGH.sbatch --lr_schedule CosineAnnealingWarmRestarts
+sbatch train_HAM10000_ARGUMENT_PASS_THROUGH.sbatch --lr_schedule Constant
+sbatch train_HAM10000_ARGUMENT_PASS_THROUGH.sbatch --lr_schedule CosineAnnealing
+
+sbatch train_HAM10000_ARGUMENT_PASS_THROUGH.sbatch --lr_schedule CosineAnnealingWarmRestarts --lr 0.05
+sbatch train_HAM10000_ARGUMENT_PASS_THROUGH.sbatch --lr_schedule Constant --lr 0.05
+sbatch train_HAM10000_ARGUMENT_PASS_THROUGH.sbatch --lr_schedule CosineAnnealing --lr 0.05
+
+
+# Final models used for SkinLesions:
+sbatch train_HAM10000_ARGUMENT_PASS_THROUGH.sbatch --lr_schedule CosineAnnealingWarmRestarts
+sbatch train_HAM10000_ARGUMENT_PASS_THROUGH.sbatch --lr_schedule CosineAnnealing --model "wide_resnet50" --batch_size_per_gpu 8
+
+# Training on Camelyon17:
+sbatch train_HAM10000_ARGUMENT_PASS_THROUGH.sbatch --lr_schedule CosineAnnealing --dataset 'WILDS-camelyon17' --image_size 96 --batch_size_per_gpu 512 --epochs 80
+sbatch train_HAM10000_ARGUMENT_PASS_THROUGH.sbatch --lr_schedule CosineAnnealing --dataset 'WILDS-camelyon17' --image_size 96 --batch_size_per_gpu 256 --epochs 80 --model 'wide_resnet50'
+

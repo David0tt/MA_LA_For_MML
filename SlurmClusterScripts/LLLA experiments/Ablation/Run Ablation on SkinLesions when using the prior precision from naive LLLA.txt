@@ -1,0 +1,20 @@
+
+
+
+#### GGN
+### Not WI TS
+## Cov-scaling
+# Fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'SkinLesions' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 2.1796 --use_hessian_scaling_wrapper --train_hessian_scaling_factor --train_hessian_diagonal_add --train_hessian_diagonal_scaling_factor --hessian_diagonal_add 0.1 --hessian_diagonal_scaling_factor 1.1 --hessian_scaling_factor 1.1 --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/SkinLesions_scaling_FixedPriorPrecision/"
+
+
+
+### WI TS
+## Not Cov-scaling
+# Fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'SkinLesions' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 2.1796 --use_weight_included_temperature_scaling --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/SkinLesions_ts_FixedPriorPrecision/"
+
+
+## Cov-scaling
+# Fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'SkinLesions' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 2.1796 --use_weight_included_temperature_scaling --use_hessian_scaling_wrapper --train_hessian_scaling_factor --train_hessian_diagonal_add --train_hessian_diagonal_scaling_factor --hessian_diagonal_add 0.1 --hessian_diagonal_scaling_factor 1.1 --hessian_scaling_factor 1.1 --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/SkinLesions_ts_and_scaling_fitted_FixedPriorPrecision/"

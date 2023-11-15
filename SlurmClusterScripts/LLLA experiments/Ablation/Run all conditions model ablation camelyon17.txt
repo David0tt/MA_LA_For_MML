@@ -1,0 +1,297 @@
+# All conditions:
+# map
+# TS (pycalib)
+# map TS (mine)
+# [Laplace] x [EF vs GGN] x [weight included TS] x [Cov-scaling] x [fitting on OOD]
+
+# Ablation cov-scaling
+
+############### Full Structure: (indentation by # means all below on the same level have this)
+# map
+# TS (pycalib)
+# map TS (mine) fitting on ID
+# map TS (mine) fitting on OOD
+##### Laplace
+#### GGN
+### Not WI TS
+## Not Cov-scaling
+# Fitting on ID
+# Fitting on OOD
+## Cov-scaling
+# Fitting on ID
+# Fitting on OOD
+### WI TS
+## Not Cov-scaling
+# Fitting on ID
+# Fitting on OOD
+## Cov-scaling
+# Fitting on ID
+# Fitting on OOD
+#### EF
+### Not WI TS
+## Not Cov-scaling
+# Fitting on ID
+# Fitting on OOD
+## Cov-scaling
+# Fitting on ID
+# Fitting on OOD
+### WI TS
+## Not Cov-scaling
+# Fitting on ID
+# Fitting on OOD
+## Cov-scaling
+# Fitting on ID
+# Fitting on OOD
+
+## Ablation Cov-scaling
+# only simple scaling
+# only diag scaling
+# only diag add
+
+
+
+# map
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --batch_size 8 --method 'map'
+
+
+
+# TS (pycalib)
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --batch_size 8 --method 'map' --use_temperature_scaling True
+
+
+
+# map TS (mine) fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --batch_size 8 --method 'map' --use_weight_included_temperature_scaling
+
+
+# # map TS (mine) fitting on OOD
+# sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --batch_size 8 --method 'map' --use_weight_included_temperature_scaling --use_ood_val_set
+
+
+##### Laplace
+#### GGN
+### Not WI TS
+## Not Cov-scaling
+# Fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 1.0 --optimize_prior_precision marglik --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_wrn50/"
+
+# Fitting on OOD
+# Does not make any sense, as there is nothing to fit
+# sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 1.0 --optimize_prior_precision marglik --use_ood_val_set --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_wrn50_on_ood_val/"
+
+
+## Cov-scaling
+# Fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 1.0 --optimize_prior_precision marglik --use_hessian_scaling_wrapper --train_hessian_scaling_factor --train_hessian_diagonal_add --train_hessian_diagonal_scaling_factor --hessian_diagonal_add 0.1 --hessian_diagonal_scaling_factor 1.1 --hessian_scaling_factor 1.1 --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_wrn50_scaling/"
+
+# # Fitting on OOD
+# sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 1.0 --optimize_prior_precision marglik --use_hessian_scaling_wrapper --train_hessian_scaling_factor --train_hessian_diagonal_add --train_hessian_diagonal_scaling_factor --hessian_diagonal_add 0.1 --hessian_diagonal_scaling_factor 1.1 --hessian_scaling_factor 1.1 --use_ood_val_set --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_wrn50_scaling_fitted_on_ood_val/"
+
+### WI TS
+## Not Cov-scaling
+# Fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 1.0 --optimize_prior_precision marglik --use_weight_included_temperature_scaling --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_wrn50_ts/"
+
+
+# # Fitting on OOD
+# sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 1.0 --optimize_prior_precision marglik --use_weight_included_temperature_scaling --use_ood_val_set
+
+
+## Cov-scaling
+# Fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 30 --use_weight_included_temperature_scaling --use_hessian_scaling_wrapper --train_hessian_scaling_factor --train_hessian_diagonal_add --train_hessian_diagonal_scaling_factor --hessian_diagonal_add 0.1 --hessian_diagonal_scaling_factor 1.1 --hessian_scaling_factor 1.1 --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_wrn50_ts_and_scaling_fitted/"
+
+
+# # Fitting on OOD
+# sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 1.0 --optimize_prior_precision marglik --use_weight_included_temperature_scaling --use_hessian_scaling_wrapper --train_hessian_scaling_factor --train_hessian_diagonal_add --train_hessian_diagonal_scaling_factor --hessian_diagonal_add 0.1 --hessian_diagonal_scaling_factor 1.1 --hessian_scaling_factor 1.1 --use_ood_val_set --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_wrn50_ts_and_scaling_fitted_on_ood_val/"
+
+
+#### EF
+### Not WI TS
+## Not Cov-scaling
+# Fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --approx_type ef --prior_precision 1.0 --optimize_prior_precision marglik --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_wrn50_ef/"
+
+
+# Fitting on OOD
+# does not make any sense, as there is nothing to fit
+# sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --approx_type ef --prior_precision 1.0 --optimize_prior_precision marglik --use_ood_val_set --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_wrn50_ef_on_ood_val/"
+
+
+## Cov-scaling
+# Fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --approx_type ef --prior_precision 1.0 --optimize_prior_precision marglik --use_hessian_scaling_wrapper --train_hessian_scaling_factor --train_hessian_diagonal_add --train_hessian_diagonal_scaling_factor --hessian_diagonal_add 0.1 --hessian_diagonal_scaling_factor 1.1 --hessian_scaling_factor 1.1 --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_wrn50_ef_scaling_fitted/"
+
+
+# # Fitting on OOD
+# sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --approx_type ef --prior_precision 1.0 --optimize_prior_precision marglik --use_hessian_scaling_wrapper --train_hessian_scaling_factor --train_hessian_diagonal_add --train_hessian_diagonal_scaling_factor --hessian_diagonal_add 0.1 --hessian_diagonal_scaling_factor 1.1 --hessian_scaling_factor 1.1 --use_ood_val_set  --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_wrn50_ef_scaling_fitted_on_ood_val/"
+
+
+### WI TS
+## Not Cov-scaling
+# Fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --approx_type ef --prior_precision 1.0 --optimize_prior_precision marglik --use_weight_included_temperature_scaling --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_wrn50_ef_ts/"
+
+# # Fitting on OOD
+# sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --approx_type ef --prior_precision 1.0 --optimize_prior_precision marglik --use_weight_included_temperature_scaling --use_ood_val_set --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_wrn50_ef_ts_on_ood_val/"
+
+
+## Cov-scaling
+# Fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --approx_type ef --prior_precision 1.0 --optimize_prior_precision marglik --use_weight_included_temperature_scaling --use_hessian_scaling_wrapper --train_hessian_scaling_factor --train_hessian_diagonal_add --train_hessian_diagonal_scaling_factor --hessian_diagonal_add 0.1 --hessian_diagonal_scaling_factor 1.1 --hessian_scaling_factor 1.1 --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_wrn50_ef_ts_and_scaling_fitted/"
+
+
+# # Fitting on OOD
+# sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --approx_type ef --prior_precision 1.0 --optimize_prior_precision marglik --use_weight_included_temperature_scaling --use_hessian_scaling_wrapper --train_hessian_scaling_factor --train_hessian_diagonal_add --train_hessian_diagonal_scaling_factor --hessian_diagonal_add 0.1 --hessian_diagonal_scaling_factor 1.1 --hessian_scaling_factor 1.1 --use_ood_val_set --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_wrn50_ef_ts_and_scaling_fitted_on_ood_val/"
+
+
+
+
+
+## Ablation Cov-scaling
+# only simple scaling
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 1.0 --optimize_prior_precision marglik --use_hessian_scaling_wrapper --train_hessian_scaling_factor --hessian_diagonal_add 0.0 --hessian_diagonal_scaling_factor 1.0 --hessian_scaling_factor 1.1 --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_wrn50_scaling_only_simple_scaling_fitted/"
+
+
+# only diag add
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 1.0 --optimize_prior_precision marglik --use_hessian_scaling_wrapper --train_hessian_diagonal_add --hessian_diagonal_add 0.1 --hessian_diagonal_scaling_factor 1.0 --hessian_scaling_factor 1.0 --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_wrn50_diagadd_fitted/"
+
+
+# only diag scaling
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_wrn50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 1.0 --optimize_prior_precision marglik --use_hessian_scaling_wrapper --train_hessian_diagonal_scaling_factor --hessian_diagonal_add 0.0 --hessian_diagonal_scaling_factor 1.0 --hessian_scaling_factor 1.1 --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_wrn50_diagscaling_fitted/"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# map
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --batch_size 8 --method 'map'
+
+
+
+# TS (pycalib)
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --batch_size 8 --method 'map' --use_temperature_scaling True
+
+
+
+# map TS (mine) fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --batch_size 8 --method 'map' --use_weight_included_temperature_scaling
+
+
+# # map TS (mine) fitting on OOD
+# sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --batch_size 8 --method 'map' --use_weight_included_temperature_scaling --use_ood_val_set
+
+
+##### Laplace
+#### GGN
+### Not WI TS
+## Not Cov-scaling
+# Fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 1.0 --optimize_prior_precision marglik --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_resnet50/"
+
+# Fitting on OOD
+# Does not make any sense, as there is nothing to fit
+# sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 1.0 --optimize_prior_precision marglik --use_ood_val_set --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_resnet50_on_ood_val/"
+
+
+## Cov-scaling
+# Fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 1.0 --optimize_prior_precision marglik --use_hessian_scaling_wrapper --train_hessian_scaling_factor --train_hessian_diagonal_add --train_hessian_diagonal_scaling_factor --hessian_diagonal_add 0.1 --hessian_diagonal_scaling_factor 1.1 --hessian_scaling_factor 1.1 --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_resnet50_scaling/"
+
+# # Fitting on OOD
+# sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 1.0 --optimize_prior_precision marglik --use_hessian_scaling_wrapper --train_hessian_scaling_factor --train_hessian_diagonal_add --train_hessian_diagonal_scaling_factor --hessian_diagonal_add 0.1 --hessian_diagonal_scaling_factor 1.1 --hessian_scaling_factor 1.1 --use_ood_val_set --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_resnet50_scaling_fitted_on_ood_val/"
+
+### WI TS
+## Not Cov-scaling
+# Fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 1.0 --optimize_prior_precision marglik --use_weight_included_temperature_scaling --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_resnet50_ts/"
+
+
+# # Fitting on OOD
+# sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 1.0 --optimize_prior_precision marglik --use_weight_included_temperature_scaling --use_ood_val_set
+
+
+## Cov-scaling
+# Fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 30 --use_weight_included_temperature_scaling --use_hessian_scaling_wrapper --train_hessian_scaling_factor --train_hessian_diagonal_add --train_hessian_diagonal_scaling_factor --hessian_diagonal_add 0.1 --hessian_diagonal_scaling_factor 1.1 --hessian_scaling_factor 1.1 --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_resnet50_ts_and_scaling_fitted/"
+
+
+# # Fitting on OOD
+# sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 1.0 --optimize_prior_precision marglik --use_weight_included_temperature_scaling --use_hessian_scaling_wrapper --train_hessian_scaling_factor --train_hessian_diagonal_add --train_hessian_diagonal_scaling_factor --hessian_diagonal_add 0.1 --hessian_diagonal_scaling_factor 1.1 --hessian_scaling_factor 1.1 --use_ood_val_set --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_resnet50_ts_and_scaling_fitted_on_ood_val/"
+
+
+#### EF
+### Not WI TS
+## Not Cov-scaling
+# Fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --approx_type ef --prior_precision 1.0 --optimize_prior_precision marglik --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_resnet50_ef/"
+
+
+# Fitting on OOD
+# does not make any sense, as there is nothing to fit
+# sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --approx_type ef --prior_precision 1.0 --optimize_prior_precision marglik --use_ood_val_set --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_resnet50_ef_on_ood_val/"
+
+
+## Cov-scaling
+# Fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --approx_type ef --prior_precision 1.0 --optimize_prior_precision marglik --use_hessian_scaling_wrapper --train_hessian_scaling_factor --train_hessian_diagonal_add --train_hessian_diagonal_scaling_factor --hessian_diagonal_add 0.1 --hessian_diagonal_scaling_factor 1.1 --hessian_scaling_factor 1.1 --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_resnet50_ef_scaling_fitted/"
+
+
+# # Fitting on OOD
+# sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --approx_type ef --prior_precision 1.0 --optimize_prior_precision marglik --use_hessian_scaling_wrapper --train_hessian_scaling_factor --train_hessian_diagonal_add --train_hessian_diagonal_scaling_factor --hessian_diagonal_add 0.1 --hessian_diagonal_scaling_factor 1.1 --hessian_scaling_factor 1.1 --use_ood_val_set  --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_resnet50_ef_scaling_fitted_on_ood_val/"
+
+
+### WI TS
+## Not Cov-scaling
+# Fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --approx_type ef --prior_precision 1.0 --optimize_prior_precision marglik --use_weight_included_temperature_scaling --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_resnet50_ef_ts/"
+
+# # Fitting on OOD
+# sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --approx_type ef --prior_precision 1.0 --optimize_prior_precision marglik --use_weight_included_temperature_scaling --use_ood_val_set --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_resnet50_ef_ts_on_ood_val/"
+
+
+## Cov-scaling
+# Fitting on ID
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --approx_type ef --prior_precision 1.0 --optimize_prior_precision marglik --use_weight_included_temperature_scaling --use_hessian_scaling_wrapper --train_hessian_scaling_factor --train_hessian_diagonal_add --train_hessian_diagonal_scaling_factor --hessian_diagonal_add 0.1 --hessian_diagonal_scaling_factor 1.1 --hessian_scaling_factor 1.1 --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_resnet50_ef_ts_and_scaling_fitted/"
+
+
+# # Fitting on OOD
+# sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --approx_type ef --prior_precision 1.0 --optimize_prior_precision marglik --use_weight_included_temperature_scaling --use_hessian_scaling_wrapper --train_hessian_scaling_factor --train_hessian_diagonal_add --train_hessian_diagonal_scaling_factor --hessian_diagonal_add 0.1 --hessian_diagonal_scaling_factor 1.1 --hessian_scaling_factor 1.1 --use_ood_val_set --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_resnet50_ef_ts_and_scaling_fitted_on_ood_val/"
+
+
+
+
+
+## Ablation Cov-scaling
+# only simple scaling
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 1.0 --optimize_prior_precision marglik --use_hessian_scaling_wrapper --train_hessian_scaling_factor --hessian_diagonal_add 0.0 --hessian_diagonal_scaling_factor 1.0 --hessian_scaling_factor 1.1 --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_resnet50_scaling_only_simple_scaling_fitted/"
+
+
+# only diag add
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 1.0 --optimize_prior_precision marglik --use_hessian_scaling_wrapper --train_hessian_diagonal_add --hessian_diagonal_add 0.1 --hessian_diagonal_scaling_factor 1.0 --hessian_scaling_factor 1.0 --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_resnet50_diagadd_fitted/"
+
+
+# only diag scaling
+sbatch uq_ARGUMENT_PASS_THROUGH.sbatch --benchmark 'WILDS-camelyon17' --specific_ablation_model 'camelyon17_resnet50' --seed 711 --model_seed 1254883 --pred_type glm --link_approx mc --hessian_structure full --subset_of_weights last_layer --batch_size 8 --method 'laplace' --prior_precision 1.0 --optimize_prior_precision marglik --use_hessian_scaling_wrapper --train_hessian_diagonal_scaling_factor --hessian_diagonal_add 0.0 --hessian_diagonal_scaling_factor 1.0 --hessian_scaling_factor 1.1 --save_predictive_distributions --predictive_distributions_save_dir "./results/predictive_distributions/camelyon17_resnet50_diagscaling_fitted/"
