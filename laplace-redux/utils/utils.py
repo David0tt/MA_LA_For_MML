@@ -65,16 +65,6 @@ def load_pretrained_model(args, model_idx, device):
         model = model.to(device)
 
     elif args.benchmark == 'SkinLesions' or args.benchmark == 'HAM10000-C':
-        # # Model from https://github.com/ZerojumpLine/Robust-Skin-Lesion-Classification
-        # from models.skinlesions.BACKUP.resnet_skin import network
-        # num_classes = 7
-        # model = network(name='resnet50', num_classes = num_classes)
-        # model_ckpt = './models/skinlesions/BACKUP/resnet50_skinlesions.pth.tar'
-        # checkpoint = torch.load(model_ckpt, map_location=device)
-        # model.load_state_dict(checkpoint['state_dict'])
-        # model.to(device)
-
-        # My trained model
         NUMCLASSES = 7
 
         if args.specific_ablation_model == 'skinlesions_wrn50':
