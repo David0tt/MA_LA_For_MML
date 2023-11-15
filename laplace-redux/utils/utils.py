@@ -32,20 +32,81 @@ def set_seed(seed):
 def load_pretrained_model(args, model_idx, device):
     """ Choose appropriate architecture and load pre-trained weights """
 
-    if 'WILDS' in args.benchmark:
+
+    if args.specific_ablation_model == 'camelyon17_resnet50':
+        from torchvision.models import resnet50, ResNet50_Weights
+        from torch import nn
+        NUMCLASSES = 2
+        model = resnet50(weights = ResNet50_Weights.IMAGENET1K_V2)
+        model.fc = nn.Linear(model.fc.in_features, NUMCLASSES)
+        model_ckpt = f'./models/camelyon17/camelyon17_resnet50_{args.model_seed}.pt'
+        model.load_state_dict(torch.load(model_ckpt))
+        model.to(device)
+    elif args.specific_ablation_model == 'camelyon17_wrn50':
+        from torchvision.models import wide_resnet50_2, Wide_ResNet50_2_Weights
+        from torch import nn
+        NUMCLASSES = 2
+        model = wide_resnet50_2(weights = Wide_ResNet50_2_Weights.IMAGENET1K_V2)
+        model.fc = nn.Linear(model.fc.in_features, NUMCLASSES)
+        model_ckpt = f'./models/camelyon17/camelyon17_wrn50_{args.model_seed}.pt'
+        model.load_state_dict(torch.load(model_ckpt))
+        model.to(device)
+
+
+
+
+    elif 'WILDS' in args.benchmark:
         dataset = args.benchmark[6:]
         model = wu.load_pretrained_wilds_model(dataset, args.models_root,
                                                device, model_idx, args.model_seed)
+    elif args.benchmark == 'ImageNet-C':
+        from torchvision.models import resnet50, ResNet50_Weights
+        model = resnet50(weights = ResNet50_Weights.IMAGENET1K_V2)
+        model = model.to(device)
+
+    elif args.benchmark == 'SkinLesions' or args.benchmark == 'HAM10000-C':
+        # # Model from https://github.com/ZerojumpLine/Robust-Skin-Lesion-Classification
+        # from models.skinlesions.BACKUP.resnet_skin import network
+        # num_classes = 7
+        # model = network(name='resnet50', num_classes = num_classes)
+        # model_ckpt = './models/skinlesions/BACKUP/resnet50_skinlesions.pth.tar'
+        # checkpoint = torch.load(model_ckpt, map_location=device)
+        # model.load_state_dict(checkpoint['state_dict'])
+        # model.to(device)
+
+        # My trained model
+        NUMCLASSES = 7
+
+        if args.specific_ablation_model == 'skinlesions_wrn50':
+            from torchvision.models import wide_resnet50_2, Wide_ResNet50_2_Weights
+            from torch import nn
+            model = wide_resnet50_2(weights = Wide_ResNet50_2_Weights.IMAGENET1K_V2)
+            model.fc = nn.Linear(model.fc.in_features, NUMCLASSES)
+            model_ckpt = f'./models/skinlesions/skinlesions_wrn50_{args.model_seed}.pt'
+            model.load_state_dict(torch.load(model_ckpt))
+            model.to(device)
+        else:
+            from torchvision.models import resnet50, ResNet50_Weights
+            from torch import nn
+            model = resnet50(weights = ResNet50_Weights.IMAGENET1K_V2)
+            model.fc = nn.Linear(model.fc.in_features, NUMCLASSES)
+            model_ckpt = f'./models/skinlesions/skinlesions_resnet50_{args.model_seed}.pt'
+            model.load_state_dict(torch.load(model_ckpt))
+            model.to(device)
+
+
     else:
         model = get_model(args.model, no_dropout=args.no_dropout).to(device)
         if args.benchmark in ['R-MNIST', 'MNIST-OOD']:
             fpath = os.path.join(args.models_root, 'lenet_mnist/lenet_mnist_{}_{}')
         elif args.benchmark in ['R-FMNIST', 'FMNIST-OOD']:
-            fpath = os.path.join(args.models_root, 'lenet_fmnist/lenet_fmnist_{}.pt')
+            fpath = os.path.join(args.models_root, 'lenet_fmnist/lenet_fmnist_{}')
         elif args.benchmark in ['CIFAR-10-C', 'CIFAR-10-OOD']:
             fpath = os.path.join(args.models_root, 'wrn16_4_cifar10/wrn_16-4_cifar10_{}_{}')
-        elif args.benchmark == 'ImageNet-C':
-            fpath = os.path.join(args.models_root, 'wrn50_2_imagenet/wrn_50-2_imagenet_{}_{}')
+        # elif args.benchmark == 'ImageNet-C':
+        #     # fpath = os.path.join(args.models_root, 'wrn50_2_imagenet/wrn_50-2_imagenet_{}_{}')
+        #     fpath = os.path.join(args.models_root, 'resnet50_imagenet/resnet50_imagenet_pytorch_pretrained.pth')
+
 
         if args.method == 'csghmc':
             fname = fpath.format(args.model_seed, model_idx+1)
@@ -284,8 +345,15 @@ def save_results(args, metrics):
         res_str = f'_{args.subset_of_weights}_{args.hessian_structure}' if args.method in ['laplace', 'mola'] else ''
         temp_str = '' if args.temperature == 1.0 else f'_{args.temperature}'
         method_str = f'temp' if args.use_temperature_scaling and args.method == 'map' else args.method
+        model_inc_temp_str = '_weight_inc_temp' if args.use_weight_included_temperature_scaling else ''
         frac_str = f'_{args.data_fraction}' if args.data_fraction < 1.0 else ''
-        result_path = f'./results/{args.benchmark}/{method_str}{res_str}{temp_str}_{args.model_seed}{frac_str}.npy'
+        scaling_string = f'_scalingfittted' if args.train_hessian_scaling_factor else ''
+        diagadd_string = f'_diagaddfitted' if args.train_hessian_diagonal_add else ''
+        diagscaling_string = f'_diagscalingfitted' if args.train_hessian_diagonal_scaling_factor else ''
+        ood_val_string = f'_OODValSet' if args.use_ood_val_set else ''
+        ef_string = f'_ef' if args.approx_type == 'ef' else ''
+        specific_ablation_model_string = f'' if args.specific_ablation_model == '' else f'{args.specific_ablation_model}_'
+        result_path = f'./results/{args.benchmark}/{specific_ablation_model_string}{method_str}{ef_string}{ood_val_string}{model_inc_temp_str}{res_str}{temp_str}{scaling_string}{diagadd_string}{diagscaling_string}_{args.model_seed}{frac_str}.npy'
     else:
         result_path = f'./results/{args.run_name}.npy'
     Path(result_path).parent.mkdir(parents=True, exist_ok=True)
