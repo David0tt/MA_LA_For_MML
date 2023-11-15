@@ -7,6 +7,14 @@ import torch.utils.data as data_utils
 import torchvision.transforms.functional as TF
 from torchvision import transforms, datasets
 
+from torch.utils.data import Dataset
+
+import pandas as pd
+from torchvision.io import read_image
+
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
+
 import utils.wilds_utils as wu
 
 
@@ -92,12 +100,28 @@ def get_in_distribution_data_loaders(args, device):
             train_batch_size=args.batch_size,
             val_size=args.val_set_size)
 
+    elif args.benchmark == 'SkinLesions':
+        no_loss_acc = False
+        ids = ['SkinLesions-id', 'SkinLesions-ood']
+        train_loader, val_loader, in_test_loader = get_ham10000_loaders(
+            args.data_root,
+            batch_size=args.batch_size,
+            train_batch_size=args.batch_size)
+
+    elif args.benchmark == 'HAM10000-C':
+        no_loss_acc = False
+        ids = [0, 1, 2, 3, 4, 5]
+        train_loader, val_loader, in_test_loader = get_ham10000c_loaders(
+            args.data_root,
+            batch_size=args.batch_size,
+            train_batch_size=args.batch_size)
+
     elif 'WILDS' in args.benchmark:
         dataset = args.benchmark[6:]
         no_loss_acc = False
         ids = [f'{dataset}-id', f'{dataset}-ood']
         train_loader, val_loader, in_test_loader = wu.get_wilds_loaders(
-            dataset, args.data_root, args.data_fraction, args.model_seed)
+            dataset, args.data_root, args.data_fraction, args.model_seed, download=args.download, use_ood_val_set=args.use_ood_val_set)
 
     return (train_loader, val_loader, in_test_loader), ids, no_loss_acc
 
@@ -140,6 +164,11 @@ def get_ood_test_loader(args, id):
             id, data_path=args.data_root,
             batch_size=args.batch_size,
             download=args.download)
+    elif args.benchmark == 'SkinLesions':
+        test_loader = get_SkinLesions_ood_loader(
+            id, data_path=args.data_root,
+            batch_size=args.batch_size,
+        )
     elif 'WILDS' in args.benchmark:
         dataset = args.benchmark[6:]
         test_loader = wu.get_wilds_ood_test_loader(
@@ -194,7 +223,8 @@ def get_cifar10_loaders(data_path, batch_size=512, val_size=2000,
 
 
 def get_imagenet_loaders(data_path, batch_size=128, val_size=2000,
-                         train_batch_size=128, num_workers=5):
+                         train_batch_size=128, num_workers=4):
+
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
@@ -211,12 +241,13 @@ def get_imagenet_loaders(data_path, batch_size=128, val_size=2000,
         normalize,
     ])
 
-    data_path_train = os.path.join(data_path, 'ImageNet2012/train')
-    data_path_val = os.path.join(data_path, 'ImageNet2012/val')
+    data_path = os.path.join(data_path, 'ImageNet2012')
 
-    # Get datasets and data loaders
-    train_set = datasets.ImageFolder(data_path_train, transform=tforms_train)
-    val_test_set = datasets.ImageFolder(data_path_val, transform=tforms_test)
+    train_set = datasets.ImageNet(data_path, split = 'train', transform=tforms_train)
+
+    val_test_set = datasets.ImageNet(data_path, split = 'val', transform=tforms_test)
+
+
 
     train_loader = data_utils.DataLoader(train_set,
                                          batch_size=train_batch_size,
@@ -231,6 +262,224 @@ def get_imagenet_loaders(data_path, batch_size=128, val_size=2000,
 
     return train_loader, val_loader, test_loader
 
+
+class HAM10000Dataset(Dataset):
+    def __init__(self, annotations_file, img_dir, transform=None):
+        self.img_labels = pd.read_csv(annotations_file)
+        self.img_dir = img_dir
+        self.transform = transform
+
+        # -> Class order is: MEL, NV, BCC, AKIEC, BKL, DF, VASC
+        # -> Class order of trained classifier is: akiec', 'bcc', 'bkl', 'df', 'mel', 'nv', 'vasc'}
+        self.LABELTRANSLATE = {0: 4, 1: 5, 2: 1, 3: 0, 4: 2, 5: 3, 6: 6}
+
+        self.SKINLESIONS_CLASS_TO_IDX = {'akiec': 0, 'bcc': 1, 'bkl': 2, 'df': 3, 'mel': 4, 'nv': 5, 'vasc': 6}
+
+
+    def __len__(self):
+        return len(self.img_labels)
+
+    def __getitem__(self, idx):
+        img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0] + '.jpg')
+        # image = read_image(img_path)
+        image = Image.open(img_path)
+        if self.transform:
+            image = self.transform(image)
+
+        label = np.argmax(self.img_labels.iloc[idx, 1:])
+        label = self.LABELTRANSLATE[label]
+        return image, label
+
+
+def get_ham10000_loaders(data_path, batch_size=16, train_batch_size=16, num_workers=4, image_size=512):
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225])
+
+    tforms_test = transforms.Compose([
+        transforms.Resize((image_size, image_size)),
+        transforms.ToTensor(),
+        normalize,
+    ])
+
+    # more elaborate augmentations, copied from https://www.kaggle.com/competitions/siim-isic-melanoma-classification/discussion/175412
+    transform_train = A.Compose([
+        A.Transpose(p=0.5),
+        A.VerticalFlip(p=0.5),
+        A.HorizontalFlip(p=0.5),
+        # A.RandomBrightness(limit=0.2, p=0.75),
+        # A.RandomContrast(limit=0.2, p=0.75),
+        A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.75),
+        A.OneOf([
+            A.MotionBlur(blur_limit=5),
+            A.MedianBlur(blur_limit=5),
+            A.GaussianBlur(blur_limit=(3, 5)),
+            A.GaussNoise(var_limit=(5.0, 30.0)),
+        ], p=0.7),
+
+        A.OneOf([
+            A.OpticalDistortion(distort_limit=1.0),
+            A.GridDistortion(num_steps=5, distort_limit=1.),
+            A.ElasticTransform(alpha=3),
+        ], p=0.7),
+
+        A.CLAHE(clip_limit=4.0, p=0.7),
+        A.HueSaturationValue(hue_shift_limit=10, sat_shift_limit=20, val_shift_limit=10, p=0.5),
+        A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=15, border_mode=0, p=0.85),
+        A.Resize(image_size, image_size),
+        # A.Cutout(max_h_size=int(image_size * 0.375), max_w_size=int(image_size * 0.375), num_holes=1, p=0.7),
+        A.OneOf([A.CoarseDropout(max_holes=4, max_height=int(image_size * 0.375), max_width=int(image_size * 0.375), 
+                        min_holes=1, min_height=1, min_width=1, fill_value=0)], p=0.7),
+        A.Normalize(),
+        ToTensorV2(),
+    ])
+    tforms_train = lambda x: transform_train(image=np.array(x))['image']
+
+    data_path = os.path.join(data_path, 'HAM10000')
+
+    data_path_train = os.path.join(data_path, 'ISIC2018_Task3_Training_Input')
+    data_path_val = os.path.join(data_path, 'ISIC2018_Task3_Validation_Input')
+    data_path_test = os.path.join(data_path, 'ISIC2018_Task3_Test_Input')
+
+    annotation_path_train = os.path.join(data_path, 'ISIC2018_Task3_Training_GroundTruth', 'ISIC2018_Task3_Training_GroundTruth.csv')
+    annotation_path_val = os.path.join(data_path, 'ISIC2018_Task3_Validation_GroundTruth', 'ISIC2018_Task3_Validation_GroundTruth.csv')
+    annotation_path_test = os.path.join(data_path, 'ISIC2018_Task3_Test_GroundTruth', 'ISIC2018_Task3_Test_GroundTruth.csv')
+
+
+    train_set = HAM10000Dataset(annotation_path_train, data_path_train, transform=tforms_train)
+    val_set = HAM10000Dataset(annotation_path_val, data_path_val, transform=tforms_test)
+    test_set = HAM10000Dataset(annotation_path_test, data_path_test, transform=tforms_test)
+
+
+    train_loader = data_utils.DataLoader(train_set,
+                                         batch_size=train_batch_size,
+                                         shuffle=True,
+                                         num_workers=num_workers,
+                                         pin_memory=True)
+    val_loader = data_utils.DataLoader(val_set,
+                                       batch_size=batch_size,
+                                       num_workers=num_workers,
+                                       pin_memory=True)
+    test_loader = data_utils.DataLoader(test_set,
+                                       batch_size=batch_size,
+                                       num_workers=num_workers,
+                                       pin_memory=True)
+
+    return train_loader, val_loader, test_loader
+
+
+def get_ham10000c_loaders(data_path, batch_size=128, train_batch_size=128, num_workers=4, image_size=512):
+    # TODO we could follow the way the corruptions were generated in https://github.com/ZerojumpLine/Robust-Skin-Lesion-Classification/tree/main/skinlesiondatasets
+    # which is for 30% of the HAM10000 set
+    # alternatively we could generate corruptions for the ~1500 items HAM10000 test set that was released after the competition
+    raise NotImplementedError
+    # return train_loader, val_loader, test_loader
+
+
+SKINLESIONS_CLASS_TO_IDX = {'akiec': 0, 'bcc': 1, 'bkl': 2, 'df': 3, 'mel': 4, 'nv': 5, 'vasc': 6}
+
+def get_SkinLesions_ood_loader(ood_dataset, data_path='./data', batch_size=16, num_workers=4, image_size=512):
+    # Overwrite the find_classes method of datasets.ImageFolder to load the
+    # correct mapping class_to_idx, even if the respective class is not in one
+    # of the datasets, so the respective folder does not exist
+    def find_classes(self, directory):
+        """Finds the class folders in a dataset.
+
+        See :class:`DatasetFolder` for details.
+        """
+        classes = sorted(entry.name for entry in os.scandir(directory) if entry.is_dir())
+        if not classes:
+            raise FileNotFoundError(f"Couldn't find any class folder in {directory}.")
+
+        class_to_idx = SKINLESIONS_CLASS_TO_IDX
+        return classes, class_to_idx
+    datasets.ImageFolder.find_classes = find_classes
+
+    def has_file_allowed_extension(filename, extensions):
+        """Checks if a file is an allowed extension.
+
+        Args:
+            filename (string): path to a file
+            extensions (tuple of strings): extensions to consider (lowercase)
+
+        Returns:
+            bool: True if the filename ends with one of given extensions
+        """
+        return filename.lower().endswith(extensions if isinstance(extensions, str) else tuple(extensions))
+
+    def make_dataset(
+        self,
+        directory,
+        class_to_idx= None,
+        extensions = None,
+        is_valid_file = None,
+    ):
+        """Generates a list of samples of a form (path_to_sample, class).
+
+        See :class:`DatasetFolder` for details.
+
+        Note: The class_to_idx parameter is here optional and will use the logic of the ``find_classes`` function
+        by default.
+        """
+        directory = os.path.expanduser(directory)
+
+        if class_to_idx is None:
+            _, class_to_idx = find_classes(directory)
+        elif not class_to_idx:
+            raise ValueError("'class_to_index' must have at least one entry to collect any samples.")
+
+        both_none = extensions is None and is_valid_file is None
+        both_something = extensions is not None and is_valid_file is not None
+        if both_none or both_something:
+            raise ValueError("Both extensions and is_valid_file cannot be None or not None at the same time")
+
+        if extensions is not None:
+
+            def is_valid_file(x: str) -> bool:
+                return has_file_allowed_extension(x, extensions)  # type: ignore[arg-type]
+
+        instances = []
+        available_classes = set()
+        for target_class in sorted(class_to_idx.keys()):
+            class_index = class_to_idx[target_class]
+            target_dir = os.path.join(directory, target_class)
+            if not os.path.isdir(target_dir):
+                continue
+            for root, _, fnames in sorted(os.walk(target_dir, followlinks=True)):
+                for fname in sorted(fnames):
+                    path = os.path.join(root, fname)
+                    if is_valid_file(path):
+                        item = path, class_index
+                        instances.append(item)
+
+                        if target_class not in available_classes:
+                            available_classes.add(target_class)
+
+        return instances
+    datasets.ImageFolder.make_dataset = make_dataset
+
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225])
+
+    transform_val = transforms.Compose([
+        transforms.Resize((image_size, image_size)),
+        transforms.ToTensor(),
+        normalize,
+    ])
+    datasetlist = ['BCN', 'D7P', 'MSK', 'PH2', 'SON', 'UDA', 'VIE']
+
+    data_folder = os.path.join(data_path, 'SkinLesionDatasets')
+
+    test_datasets = []
+
+    for datasetn in datasetlist:
+        test_dataset = datasets.ImageFolder(root=os.path.join(data_folder, datasetn), transform=transform_val)
+        test_datasets.append(test_dataset)
+
+    test_dataset = data_utils.ConcatDataset(test_datasets)
+    test_loader = torch.utils.data.DataLoader(
+            test_dataset, batch_size=batch_size, shuffle=False,
+            num_workers=num_workers, pin_memory=True)
+    return test_loader
 
 def get_mnist_loaders(data_path, batch_size=512, model_class='LeNet',
                       train_batch_size=128, val_size=2000, download=False, device='cpu'):
@@ -390,6 +639,7 @@ def load_corrupted_cifar10(severity, data_dir='data', batch_size=256, cuda=True,
 def load_corrupted_imagenet(severity, data_dir='data', batch_size=128, cuda=True, workers=1):
     """ load corrupted ImageNet dataset """
 
+
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
     transform = transforms.Compose([
@@ -398,6 +648,16 @@ def load_corrupted_imagenet(severity, data_dir='data', batch_size=128, cuda=True
             transforms.ToTensor(),
             normalize,
     ])
+
+    if severity == 0:
+        path = os.path.join(data_dir, 'ImageNet2012', 'val')
+        dataset = datasets.ImageFolder(path, transform=transform)
+        loader = torch.utils.data.DataLoader(
+            dataset,
+            batch_size=batch_size, shuffle=False,
+            num_workers=workers, pin_memory=cuda)
+        return loader
+
 
     corruption_types = ['brightness', 'contrast', 'defocus_blur', 'elastic_transform', 'fog',
                         'frost', 'gaussian_blur', 'gaussian_noise', 'glass_blur', 'impulse_noise',
