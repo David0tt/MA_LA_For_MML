@@ -1,6 +1,6 @@
 
 # Robust Uncertainty Estimation in Medical Machine Learning Applications with the Laplace Approximation
-Code for my Masters Thesis "Robust Uncertainty Estimation in Medical Machine Learning Applications with the Laplace Approximation". 
+Code for my Master's Thesis "Robust Uncertainty Estimation in Medical Machine Learning Applications with the Laplace Approximation". 
 
 
 ## How this repository is structured
