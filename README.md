@@ -12,3 +12,16 @@ Code for my Master's Thesis "Robust Uncertainty Estimation in Medical Machine Le
 
 ## Replicating my results
 When wanting to replicate my work, one should start by obtaining the SkinLesions dataset. Then the training scripts and experimentation scripts should be run and afterwards the plotting should be done. 
+
+## Python environment
+To set up the environment, I used the following commands:
+
+        conda create -n MALaplaceRedux python=3.8 pip
+        git clone https://github.com/David0tt/MA_LA_For_MML
+        cd MA_LA_For_MML/laplace-redux
+        pip install .
+        pip install transformers torch-geometric albumentations
+        cd ../..
+        git clone https://github.com/p-lambda/wilds/
+        cd wilds
+        pip install -e . 
